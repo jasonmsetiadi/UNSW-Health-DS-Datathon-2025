@@ -208,3 +208,4 @@ __marimo__/
 /01-Data-and-Data-Dictionary
 /00-Research-Questions
 .DS_Store
+*.json

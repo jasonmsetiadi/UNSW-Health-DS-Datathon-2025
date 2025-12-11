@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ANZHFR Patient Information Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .input-section {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+
+        .input-section h2 {
+            font-size: 1.8em;
+            margin-bottom: 25px;
+            color: #667eea;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.1em;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group input[type="number"] {
+            font-size: 1.3em;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 20px;
+            font-size: 1.4em;
+            font-weight: 600;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 20px;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-submit:active {
+            transform: translateY(0);
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results-section {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .results-section.active {
+            display: block;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .stat-card h3 {
+            font-size: 1.1em;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+
+        .stat-card .value {
+            font-size: 2.5em;
+            font-weight: 700;
+            margin: 10px 0;
+        }
+
+        .stat-card .subtitle {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+
+        .section-title {
+            font-size: 1.8em;
+            margin: 40px 0 20px 0;
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .timeline {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+
+        .timeline-step {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .timeline-step:last-child {
+            margin-bottom: 0;
+        }
+
+        .timeline-icon {
+            width: 50px;
+            height: 50px;
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-right: 20px;
+            flex-shrink: 0;
+        }
+
+        .timeline-content {
+            flex: 1;
+        }
+
+        .timeline-content h4 {
+            font-size: 1.3em;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .timeline-content p {
+            font-size: 1.1em;
+            color: #666;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.3em;
+            color: #667eea;
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-size: 1.1em;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+            font-size: 1.1em;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>ANZHFR Patient Information</h1>
+            <p>Find information about hip fracture care based on similar patients</p>
+        </div>
+
+        <div class="content">
+            <div class="input-section">
+                <h2>Tell Us About Yourself</h2>
+                <div class="info-box">
+                    Enter your information below to see statistics and outcomes for patients similar to you.
+                </div>
+                
+                <form id="patientForm">
+                    <div class="form-group">
+                        <label for="age">Age</label>
+                        <input type="number" id="age" name="age" min="18" max="120" required placeholder="Enter your age">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="sex">Gender</label>
+                        <select id="sex" name="sex" required>
+                            <option value="">Select gender</option>
+                            <option value="1">Male</option>
+                            <option value="2">Female</option>
+                            <option value="3">Intersex or indeterminate</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cogstat">Cognitive Status</label>
+                        <select id="cogstat" name="cogstat" required>
+                            <option value="">Select cognitive status</option>
+                            <option value="1">Normal cognition</option>
+                            <option value="2">Impaired cognition or known dementia</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="uresidence">Usual Place of Residence</label>
+                        <select id="uresidence" name="uresidence" required>
+                            <option value="">Select residence</option>
+                            <option value="1">Private residence</option>
+                            <option value="2">Residential aged care facility</option>
+                            <option value="3">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="walk">Pre-fracture Walking Ability (Optional)</label>
+                        <select id="walk" name="walk">
+                            <option value="">Select walking ability (optional)</option>
+                            <option value="1">Walks without walking aids</option>
+                            <option value="2">Walks with either a stick or crutch</option>
+                            <option value="3">Walks with two aids or frame</option>
+                            <option value="4">Uses a wheelchair / bed bound</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn-submit" id="submitBtn">
+                        Get My Information
+                    </button>
+                </form>
+            </div>
+
+            <div id="loading" class="loading" style="display: none;">
+                Loading data and calculating statistics...
+            </div>
+
+            <div id="error" class="error" style="display: none;"></div>
+
+            <div id="results" class="results-section">
+                <div class="section-title">Demographics Summary</div>
+                <div class="stats-grid" id="demographicsStats"></div>
+
+                <div class="section-title">Key Outcomes</div>
+                <div class="stats-grid" id="outcomesStats"></div>
+
+                <div class="section-title">Care Journey Timeline</div>
+                <div class="timeline" id="careTimeline"></div>
+
+                <div class="section-title">Visualizations</div>
+                <div class="chart-container">
+                    <canvas id="outcomesChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <canvas id="dischargeChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allData = [];
+        let outcomesChart = null;
+        let dischargeChart = null;
+
+        // Load CSV data when page loads
+        window.addEventListener('DOMContentLoaded', () => {
+            loadData();
+        });
+
+        async function loadData() {
+            try {
+                // Try loading JSON first (faster and works better locally)
+                try {
+                    const response = await fetch('data.json');
+                    if (response.ok) {
+                        allData = await response.json();
+                        console.log(`Loaded ${allData.length} records from JSON`);
+                        return;
+                    }
+                } catch (jsonError) {
+                    console.log('JSON not found, trying CSV...');
+                }
+                
+                // Fallback to CSV if JSON not available
+                const response = await fetch('01-Data-and-Data-Dictionary/unsw_datathon_2025.csv');
+                const csvText = await response.text();
+                
+                Papa.parse(csvText, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: function(results) {
+                        allData = results.data.filter(row => {
+                            // Filter out rows with missing critical data
+                            return row.age && row.sex && row.cogstat && row.uresidence;
+                        });
+                        console.log(`Loaded ${allData.length} records from CSV`);
+                    },
+                    error: function(error) {
+                        showError('Error loading data: ' + error.message);
+                    }
+                });
+            } catch (error) {
+                showError('Error loading data file. Please run convert_data_to_json.py first to create data.json, or use a local web server (see README).');
+                console.error(error);
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('error').style.display = 'none';
+        }
+
+        document.getElementById('patientForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const loading = document.getElementById('loading');
+            const results = document.getElementById('results');
+            
+            submitBtn.disabled = true;
+            loading.style.display = 'block';
+            results.classList.remove('active');
+            hideError();
+
+            // Small delay to show loading state
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            try {
+                const formData = {
+                    age: parseInt(document.getElementById('age').value),
+                    sex: document.getElementById('sex').value,
+                    cogstat: document.getElementById('cogstat').value,
+                    uresidence: document.getElementById('uresidence').value,
+                    walk: document.getElementById('walk').value
+                };
+
+                // Filter data based on user inputs
+                let filteredData = allData.filter(row => {
+                    // Age range: ±5 years
+                    const ageMatch = Math.abs(parseInt(row.age) - formData.age) <= 5;
+                    const sexMatch = row.sex === formData.sex;
+                    const cogstatMatch = row.cogstat === formData.cogstat;
+                    const uresidenceMatch = row.uresidence === formData.uresidence;
+                    
+                    let walkMatch = true;
+                    if (formData.walk && row.walk) {
+                        walkMatch = row.walk === formData.walk;
+                    }
+
+                    return ageMatch && sexMatch && cogstatMatch && uresidenceMatch && walkMatch;
+                });
+
+                if (filteredData.length === 0) {
+                    showError('No similar patients found. Try adjusting your inputs or leaving optional fields blank.');
+                    loading.style.display = 'none';
+                    submitBtn.disabled = false;
+                    return;
+                }
+
+                // Calculate statistics
+                const stats = calculateStatistics(filteredData, formData);
+                
+                // Display results
+                displayResults(stats, filteredData.length);
+                
+                results.classList.add('active');
+            } catch (error) {
+                showError('Error processing data: ' + error.message);
+                console.error(error);
+            } finally {
+                loading.style.display = 'none';
+                submitBtn.disabled = false;
+            }
+        });
+
+        function calculateStatistics(data, userInput) {
+            const stats = {
+                totalPatients: data.length,
+                medianAge: calculateMedian(data.map(r => parseInt(r.age))),
+                genderDistribution: calculateGenderDistribution(data),
+                cognitiveStatus: calculateCognitiveStatus(data),
+                
+                // Care journey metrics
+                avgLengthOfStay: calculateAvgLengthOfStay(data),
+                surgeryWithin48h: calculateSurgeryTiming(data),
+                
+                // Outcomes
+                rehabilitationRate: calculateRehabilitationRate(data),
+                newResidentialCare: calculateNewResidentialCare(data),
+                mortality30d: calculateMortality(data, 'mort30d'),
+                mortality90d: calculateMortality(data, 'mort90d'),
+                mortality120d: calculateMortality(data, 'mort120d'),
+                
+                // Discharge destinations
+                dischargeDestinations: calculateDischargeDestinations(data),
+                
+                // Care journey steps
+                careJourneySteps: calculateCareJourneySteps(data)
+            };
+
+            return stats;
+        }
+
+        function calculateMedian(values) {
+            const sorted = values.filter(v => !isNaN(v)).sort((a, b) => a - b);
+            const mid = Math.floor(sorted.length / 2);
+            return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+        }
+
+        function calculateGenderDistribution(data) {
+            const male = data.filter(r => r.sex === '1').length;
+            const female = data.filter(r => r.sex === '2').length;
+            return {
+                male: (male / data.length * 100).toFixed(1),
+                female: (female / data.length * 100).toFixed(1)
+            };
+        }
+
+        function calculateCognitiveStatus(data) {
+            const normal = data.filter(r => r.cogstat === '1').length;
+            const impaired = data.filter(r => r.cogstat === '2').length;
+            return {
+                normal: (normal / data.length * 100).toFixed(1),
+                impaired: (impaired / data.length * 100).toFixed(1)
+            };
+        }
+
+        function calculateAvgLengthOfStay(data) {
+            const stays = data
+                .map(r => {
+                    if (r.hdisch_datediff && r.arrdatetime_datediff) {
+                        const discharge = parseFloat(r.hdisch_datediff);
+                        const arrival = parseFloat(r.arrdatetime_datediff);
+                        if (!isNaN(discharge) && !isNaN(arrival)) {
+                            return discharge - arrival;
+                        }
+                    }
+                    return null;
+                })
+                .filter(v => v !== null && v > 0);
+            
+            if (stays.length === 0) return null;
+            const avg = stays.reduce((a, b) => a + b, 0) / stays.length;
+            return Math.round(avg);
+        }
+
+        function calculateSurgeryTiming(data) {
+            const within48h = data.filter(r => {
+                if (r.sdatetime_datediff && r.arrdatetime_datediff) {
+                    const surgery = parseFloat(r.sdatetime_datediff);
+                    const arrival = parseFloat(r.arrdatetime_datediff);
+                    if (!isNaN(surgery) && !isNaN(arrival)) {
+                        return (surgery - arrival) <= 2; // 2 days = 48 hours
+                    }
+                }
+                return false;
+            }).length;
+            return (within48h / data.length * 100).toFixed(1);
+        }
+
+        function calculateRehabilitationRate(data) {
+            const rehab = data.filter(r => {
+                // wdest: 3 = Rehabilitation unit public, 4 = Rehabilitation unit private
+                return r.wdest === '3' || r.wdest === '4';
+            }).length;
+            return (rehab / data.length * 100).toFixed(1);
+        }
+
+        function calculateNewResidentialCare(data) {
+            const newResidential = data.filter(r => {
+                // Usual residence was private (1), but discharge/residence changed to residential care (2)
+                const usualRes = r.uresidence;
+                const dischargeRes = r.dresidence || r.fresidence2;
+                return usualRes === '1' && (dischargeRes === '2');
+            }).length;
+            return (newResidential / data.length * 100).toFixed(1);
+        }
+
+        function calculateMortality(data, field) {
+            const deceased = data.filter(r => r[field] === '2').length;
+            return (deceased / data.length * 100).toFixed(1);
+        }
+
+        function calculateDischargeDestinations(data) {
+            const destinations = {};
+            data.forEach(r => {
+                const dest = r.wdest || r.dresidence || 'Unknown';
+                destinations[dest] = (destinations[dest] || 0) + 1;
+            });
+            
+            const destLabels = {
+                '1': 'Private residence',
+                '2': 'Residential aged care',
+                '3': 'Rehabilitation (public)',
+                '4': 'Rehabilitation (private)',
+                '5': 'Other hospital',
+                '6': 'Deceased',
+                '7': 'Short term care',
+                '8': 'Other'
+            };
+
+            return Object.entries(destinations).map(([key, count]) => ({
+                label: destLabels[key] || 'Unknown',
+                count: count,
+                percentage: ((count / data.length) * 100).toFixed(1)
+            })).sort((a, b) => b.count - a.count);
+        }
+
+        function calculateCareJourneySteps(data) {
+            const steps = [];
+            
+            // Step 1: Hospital Arrival
+            const avgArrivalTime = data.filter(r => r.arrdatetime_hms).length;
+            steps.push({
+                title: 'Hospital Arrival',
+                description: `${avgArrivalTime} patients arrived at the operating hospital`,
+                icon: '1'
+            });
+
+            // Step 2: Pain Assessment
+            const painAssessed = data.filter(r => r.painassess === '1' || r.painassess === '2').length;
+            steps.push({
+                title: 'Pain Assessment',
+                description: `${(painAssessed / data.length * 100).toFixed(1)}% received pain assessment`,
+                icon: '2'
+            });
+
+            // Step 3: Surgery
+            const surgeryCount = data.filter(r => r.surg === '2').length;
+            const surgeryWithin48h = data.filter(r => {
+                if (r.sdatetime_datediff && r.arrdatetime_datediff) {
+                    const surgery = parseFloat(r.sdatetime_datediff);
+                    const arrival = parseFloat(r.arrdatetime_datediff);
+                    if (!isNaN(surgery) && !isNaN(arrival)) {
+                        return (surgery - arrival) <= 2;
+                    }
+                }
+                return false;
+            }).length;
+            steps.push({
+                title: 'Surgery',
+                description: `${surgeryCount} patients had surgery. ${(surgeryWithin48h / data.length * 100).toFixed(1)}% within 48 hours`,
+                icon: '3'
+            });
+
+            // Step 4: Geriatric Assessment
+            const geriatricAssessed = data.filter(r => r.gerimed === '1').length;
+            steps.push({
+                title: 'Geriatric Assessment',
+                description: `${(geriatricAssessed / data.length * 100).toFixed(1)}% received geriatric medicine assessment`,
+                icon: '4'
+            });
+
+            // Step 5: Mobilization
+            const mobilized = data.filter(r => r.mobil === '1').length;
+            steps.push({
+                title: 'Early Mobilization',
+                description: `${(mobilized / data.length * 100).toFixed(1)}% started mobilizing on day 1`,
+                icon: '5'
+            });
+
+            // Step 6: Discharge
+            const avgLOS = calculateAvgLengthOfStay(data);
+            steps.push({
+                title: 'Hospital Discharge',
+                description: avgLOS ? `Average length of stay: ${avgLOS} days` : 'Discharge information available',
+                icon: '6'
+            });
+
+            return steps;
+        }
+
+        function displayResults(stats, patientCount) {
+            // Demographics
+            const demographicsHTML = `
+                <div class="stat-card">
+                    <h3>Similar Patients</h3>
+                    <div class="value">${patientCount}</div>
+                    <div class="subtitle">patients match your profile</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Median Age</h3>
+                    <div class="value">${stats.medianAge}</div>
+                    <div class="subtitle">years</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Gender</h3>
+                    <div class="value">${stats.genderDistribution.female}%</div>
+                    <div class="subtitle">Female / ${stats.genderDistribution.male}% Male</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Cognitive Status</h3>
+                    <div class="value">${stats.cognitiveStatus.normal}%</div>
+                    <div class="subtitle">Normal / ${stats.cognitiveStatus.impaired}% Impaired</div>
+                </div>
+            `;
+            document.getElementById('demographicsStats').innerHTML = demographicsHTML;
+
+            // Outcomes
+            const outcomesHTML = `
+                <div class="stat-card">
+                    <h3>Length of Stay</h3>
+                    <div class="value">${stats.avgLengthOfStay || 'N/A'}</div>
+                    <div class="subtitle">${stats.avgLengthOfStay ? 'days average' : 'data not available'}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Rehabilitation</h3>
+                    <div class="value">${stats.rehabilitationRate}%</div>
+                    <div class="subtitle">received rehabilitation</div>
+                </div>
+                <div class="stat-card">
+                    <h3>New Residential Care</h3>
+                    <div class="value">${stats.newResidentialCare}%</div>
+                    <div class="subtitle">required new placement</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Surgery Timing</h3>
+                    <div class="value">${stats.surgeryWithin48h}%</div>
+                    <div class="subtitle">surgery within 48 hours</div>
+                </div>
+            `;
+            document.getElementById('outcomesStats').innerHTML = outcomesHTML;
+
+            // Care Journey Timeline
+            const timelineHTML = stats.careJourneySteps.map(step => `
+                <div class="timeline-step">
+                    <div class="timeline-icon">${step.icon}</div>
+                    <div class="timeline-content">
+                        <h4>${step.title}</h4>
+                        <p>${step.description}</p>
+                    </div>
+                </div>
+            `).join('');
+            document.getElementById('careTimeline').innerHTML = timelineHTML;
+
+            // Charts
+            createOutcomesChart(stats);
+            createDischargeChart(stats.dischargeDestinations);
+        }
+
+        function createOutcomesChart(stats) {
+            const ctx = document.getElementById('outcomesChart').getContext('2d');
+            
+            if (outcomesChart) {
+                outcomesChart.destroy();
+            }
+
+            outcomesChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Rehabilitation', 'New Residential Care', 'Surgery <48h', '30-day Mortality', '90-day Mortality'],
+                    datasets: [{
+                        label: 'Percentage (%)',
+                        data: [
+                            parseFloat(stats.rehabilitationRate),
+                            parseFloat(stats.newResidentialCare),
+                            parseFloat(stats.surgeryWithin48h),
+                            parseFloat(stats.mortality30d),
+                            parseFloat(stats.mortality90d)
+                        ],
+                        backgroundColor: [
+                            'rgba(102, 126, 234, 0.8)',
+                            'rgba(118, 75, 162, 0.8)',
+                            'rgba(52, 152, 219, 0.8)',
+                            'rgba(231, 76, 60, 0.8)',
+                            'rgba(192, 57, 43, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(102, 126, 234, 1)',
+                            'rgba(118, 75, 162, 1)',
+                            'rgba(52, 152, 219, 1)',
+                            'rgba(231, 76, 60, 1)',
+                            'rgba(192, 57, 43, 1)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Key Outcomes for Similar Patients',
+                            font: {
+                                size: 18
+                            }
+                        },
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                },
+                                font: {
+                                    size: 14
+                                }
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                font: {
+                                    size: 14
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createDischargeChart(destinations) {
+            const ctx = document.getElementById('dischargeChart').getContext('2d');
+            
+            if (dischargeChart) {
+                dischargeChart.destroy();
+            }
+
+            const topDestinations = destinations.slice(0, 6);
+
+            dischargeChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: topDestinations.map(d => d.label),
+                    datasets: [{
+                        data: topDestinations.map(d => parseFloat(d.percentage)),
+                        backgroundColor: [
+                            'rgba(102, 126, 234, 0.8)',
+                            'rgba(118, 75, 162, 0.8)',
+                            'rgba(52, 152, 219, 0.8)',
+                            'rgba(46, 204, 113, 0.8)',
+                            'rgba(241, 196, 15, 0.8)',
+                            'rgba(231, 76, 60, 0.8)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Discharge Destinations',
+                            font: {
+                                size: 18
+                            }
+                        },
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                font: {
+                                    size: 14
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    return `${label}: ${value.toFixed(1)}%`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
+

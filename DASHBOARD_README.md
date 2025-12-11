@@ -1,5 +1,3 @@
-# UNSW-Health-DS-Datathon-2025
-
 # ANZHFR Patient Information Dashboard
 
 A simple, user-friendly dashboard for viewing hip fracture care statistics based on patient characteristics.
