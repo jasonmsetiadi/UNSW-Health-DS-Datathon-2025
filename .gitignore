@@ -205,3 +205,6 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+/01-Data-and-Data-Dictionary
+/00-Research-Questions
+.DS_Store
